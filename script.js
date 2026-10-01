@@ -134,6 +134,18 @@ form.addEventListener("submit", function (event) {
   notes.push(note);
   saveNotes();
   noteInput.value = "";
+  const clearAllBtn = document.querySelector("#clear-all");
+
+clearAllBtn.addEventListener("click", function () {
+  if (notes.length === 0) {
+    return;
+  }
+  if (confirm("Delete all notes?")) {
+    notes = [];
+    saveNotes();
+    render();
+  }
+});
   render();
 });
 
