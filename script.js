@@ -4,10 +4,31 @@ const noteCategory = document.querySelector("#note-category");
 const notesList = document.querySelector("#notes-list");
 const noteCount = document.querySelector("#note-count");
 const errorMessage = document.querySelector("#error-message");
+const searchInput = document.querySelector("#search-input");
 
 const MAX_CHARS = 200;
+const STORAGE_KEY = "quicknotes";
 
-let notes = [];
+let notes = loadNotes();
+
+// Load notes from localStorage (empty array if nothing saved or data is broken)
+function loadNotes() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved === null) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+// Save notes to localStorage
+function saveNotes() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+}
 
 // Show the right count message
 function updateCount() {
@@ -23,14 +44,36 @@ function updateCount() {
 // Remove one note by its id
 function deleteNote(id) {
   notes = notes.filter((note) => note.id !== id);
+  saveNotes();
   render();
+}
+
+// Return only the notes that match the search words (not case-sensitive)
+function getVisibleNotes() {
+  const query = searchInput.value.trim().toLowerCase();
+  if (query === "") {
+    return notes;
+  }
+  const words = query.split(/\s+/);
+  return notes.filter((note) => {
+    const text = note.text.toLowerCase();
+    return words.every((word) => text.includes(word));
+  });
 }
 
 // Rebuild the whole list from the notes array
 function render() {
   notesList.replaceChildren();
 
-  for (const note of notes) {
+  const visibleNotes = getVisibleNotes();
+
+  if (notes.length > 0 && visibleNotes.length === 0) {
+    const empty = document.createElement("li");
+    empty.textContent = "No notes match your search.";
+    notesList.append(empty);
+  }
+
+  for (const note of visibleNotes) {
     const li = document.createElement("li");
     li.classList.add("note", "category-" + note.category);
 
@@ -89,8 +132,12 @@ form.addEventListener("submit", function (event) {
   };
 
   notes.push(note);
+  saveNotes();
   noteInput.value = "";
   render();
 });
+
+// Filter the list as the user types in the search box
+searchInput.addEventListener("input", render);
 
 render();
